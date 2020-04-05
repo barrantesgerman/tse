@@ -9,8 +9,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /**
@@ -26,10 +26,14 @@ public class ReloadController {
     private ReloadService reloadService;
 
     @Operation(description = "Realiza la recarga de la Base de Datos, este método se debe usar como contingencia, la carga toma varios minutos.")
-    @APIResponses({
-        @APIResponse(responseCode = "200", description = "Se recargó exitosamente la Base de Datos"),
-        @APIResponse(responseCode = "400", description = "No se logró recargar la Base de Datos")
-    })
+    @APIResponse(
+            responseCode = "200",
+            description = "Se recargó exitosamente la Base de Datos",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON))
+    @APIResponse(
+            responseCode = "400",
+            description = "No se logró recargar la Base de Datos",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON))
     @GET
     @Produces({MediaType.APPLICATION_JSON})
     public Response reload() {

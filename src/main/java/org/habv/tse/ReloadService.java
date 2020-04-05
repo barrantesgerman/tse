@@ -44,6 +44,7 @@ public class ReloadService {
     private MongoCollection<Document> padron;
 
     public void reload() throws IOException {
+        delete();
         download();
         unzip();
         bulkLoad();
