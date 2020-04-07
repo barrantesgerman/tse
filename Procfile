@@ -1,1 +1,1 @@
-web: java -jar target/tse-microbundle.jar --port $PORT
+web: java -jar target/tse.jar --http.port=$PORT

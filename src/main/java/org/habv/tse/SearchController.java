@@ -14,8 +14,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.bson.Document;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /**
@@ -32,12 +32,16 @@ public class SearchController {
     private MongoCollection<Document> padron;
 
     @Operation(description = "Realiza la busqueda por número de cédula")
-    @APIResponses({
-        @APIResponse(responseCode = "200", description = "Retorna la información de la persona con la cédula indicada"),
-        @APIResponse(responseCode = "404", description = "No se encontró una persona con la cédula indicada")
-    })
+    @APIResponse(
+            responseCode = "200",
+            description = "Retorna la información de la persona con la cédula indicada",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON))
+    @APIResponse(
+            responseCode = "404",
+            description = "No se encontró una persona con la cédula indicada",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON))
     @GET
-    @Path("{cedula:\\d{9,9}}")
+    @Path("{cedula}")
     @Produces({MediaType.APPLICATION_JSON})
     public Response search(@PathParam("cedula") String cedula) {
         Document doc = padron

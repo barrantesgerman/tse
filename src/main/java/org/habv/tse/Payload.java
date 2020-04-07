@@ -1,7 +1,7 @@
 package org.habv.tse;
 
 import java.io.Serializable;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 
 /**
  *
@@ -10,18 +10,18 @@ import java.time.ZonedDateTime;
 public class Payload implements Serializable {
 
     private final String mensaje;
-    private final ZonedDateTime fecha;
+    private final OffsetDateTime fecha;
 
     public Payload(String mensaje, Object... parametros) {
         this.mensaje = String.format(mensaje, parametros);
-        this.fecha = ZonedDateTime.now();
+        this.fecha = OffsetDateTime.now();
     }
 
     public String getMensaje() {
         return mensaje;
     }
 
-    public ZonedDateTime getFecha() {
+    public OffsetDateTime getFecha() {
         return fecha;
     }
 

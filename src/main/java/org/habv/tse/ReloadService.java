@@ -44,6 +44,7 @@ public class ReloadService {
     private MongoCollection<Document> padron;
 
     public void reload() throws IOException {
+        delete();
         download();
         unzip();
         bulkLoad();
@@ -88,7 +89,6 @@ public class ReloadService {
                 String[] parts = line.split("\\s*,\\s*");
                 Document doc = new Document()
                         .append("cedula", parts[0])
-                        .append("sexo", "1".equals(parts[2]) ? "M" : "F")
                         .append("nombre", parts[5])
                         .append("primerApellido", parts[6])
                         .append("segundoApellido", parts[7].trim());

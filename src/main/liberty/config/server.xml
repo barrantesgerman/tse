@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<server description="liberty">
+    <featureManager>
+        <feature>microProfile-3.2</feature>
+    </featureManager>
+    
+    <variable name="http.port" defaultValue="8080"/>
+    <variable name="https.port" defaultValue="9443"/>
+    
+    <webApplication location="tse.war" contextRoot="/" />
+    <mpMetrics authentication="false"/>
+    
+    <httpEndpoint id="defaultHttpEndpoint" host="*" httpPort="${http.port}" httpsPort="${https.port}"/>
+    <ssl id="defaultSSLConfig" trustDefaultCerts="true"/>
+    <variable name="io_openliberty_guides_system_inMaintenance" value="false"/>
+</server>
