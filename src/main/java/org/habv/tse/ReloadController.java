@@ -28,24 +28,17 @@ public class ReloadController {
     @Operation(description = "Realiza la recarga de la Base de Datos, este método se debe usar como contingencia, la carga toma varios minutos.")
     @APIResponse(
             responseCode = "200",
-            description = "Se recargó exitosamente la Base de Datos",
+            description = "Se envió la solicitud de recarga",
             content = @Content(mediaType = MediaType.APPLICATION_JSON))
     @APIResponse(
-            responseCode = "400",
-            description = "No se logró recargar la Base de Datos",
+            responseCode = "409",
+            description = "Se está recargando la base de datos actualmente, inténtelo más tarde",
             content = @Content(mediaType = MediaType.APPLICATION_JSON))
     @GET
     @Produces({MediaType.APPLICATION_JSON})
     public Response reload() {
-        try {
-            reloadService.reload();
-            return Response.ok(new Payload("OK")).build();
-        } catch (IOException ex) {
-            return Response
-                    .status(Response.Status.BAD_REQUEST)
-                    .entity(new Payload("Ocurrió un error: %s", ex.getMessage()))
-                    .build();
-        }
+        reloadService.reload();
+        return Response.ok(new Payload("OK")).build();
     }
 
 }

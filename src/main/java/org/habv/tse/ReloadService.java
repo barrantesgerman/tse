@@ -12,12 +12,20 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 import org.bson.Document;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.habv.tse.mongodb.Collection;
@@ -28,6 +36,10 @@ import org.habv.tse.mongodb.Collection;
  */
 @ApplicationScoped
 public class ReloadService {
+
+    private static final String MENSAJE_ERROR = "Se está recargando la base de datos actualmente, inténtelo más tarde";
+    private final AtomicBoolean reloading;
+    private final ExecutorService executorService;
 
     @Inject
     @ConfigProperty(name = "tse.download")
@@ -42,16 +54,60 @@ public class ReloadService {
     @Inject
     @Collection("padron")
     private MongoCollection<Document> padron;
+    @Inject
+    @Collection("bitacora")
+    private MongoCollection<Document> bitacora;
 
-    public void reload() throws IOException {
-        delete();
-        download();
-        unzip();
-        bulkLoad();
-        delete();
+    public ReloadService() {
+        this.reloading = new AtomicBoolean(false);
+        this.executorService = Executors.newSingleThreadExecutor();
+    }
+
+    @PreDestroy
+    private void shutdown() {
+        this.executorService.shutdown();
+    }
+
+    public void reload() {
+        if (reloading.compareAndSet(false, true)) {
+            executorService.submit(() -> {
+                try {
+                    bitacora.drop();
+                    delete();
+                    download();
+                    unzip();
+                    bulkLoad();
+                    delete();
+                } catch (IOException ex) {
+                    trace("IOException %s", ex.getMessage());
+                } catch (Exception ex) {
+                    trace("Exception %s", ex.getMessage());
+                }
+                reloading.set(false);
+            });
+        } else {
+            throw new WebApplicationException(
+                    MENSAJE_ERROR,
+                    Response
+                            .status(Response.Status.CONFLICT)
+                            .entity(new Payload(MENSAJE_ERROR))
+                            .build());
+        }
+    }
+
+    private void trace(String message, Object... params) {
+        try {
+            Document trace = new Document()
+                    .append("mensaje", String.format(message, params))
+                    .append("fecha", LocalDateTime.now(ZoneId.of("-06:00")));
+            bitacora.insertOne(trace);
+        } catch (Exception ex) {
+            System.err.println("Error: " + ex.getMessage());
+        }
     }
 
     private void download() throws IOException {
+        trace("Download %s", download);
         URL url = new URL(download);
         ReadableByteChannel rbc = Channels.newChannel(url.openStream());
         FileOutputStream fos = new FileOutputStream(zipfile);
@@ -59,6 +115,7 @@ public class ReloadService {
     }
 
     private void unzip() throws IOException {
+        trace("Unzip %s", zipfile);
         byte[] buffer = new byte[1024];
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipfile))) {
             ZipEntry entry = zis.getNextEntry();
@@ -78,6 +135,7 @@ public class ReloadService {
     }
 
     private void bulkLoad() throws IOException {
+        trace("Bulk Load");
         padron.drop();
         int bulkSize = 200;
         int count = 0;
@@ -108,6 +166,7 @@ public class ReloadService {
     }
 
     private void delete() {
+        trace("Delete %s %s", txtfile, zipfile);
         new File(txtfile).delete();
         new File(zipfile).delete();
     }
