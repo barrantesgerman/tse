@@ -22,8 +22,8 @@ import org.eclipse.microprofile.openapi.annotations.servers.Server;
                         url = "http://habv.org")
         ),
         servers = {
-            @Server(url = "http://localhost:8080/", description = "localhost"),
-            @Server(url = "http://mnemosyne:8080/", description = "mnemosyne")
+            @Server(url = "https://habv-tse.herokuapp.com/", description = "Heroku"),
+            @Server(url = "http://localhost:8080/", description = "localhost")
         }
 )
 @ApplicationPath("/api")
