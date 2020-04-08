@@ -1,6 +1,5 @@
 package org.habv.tse;
 
-import java.io.IOException;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.GET;

@@ -24,8 +24,6 @@ import java.util.zip.ZipInputStream;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
 import org.bson.Document;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.habv.tse.mongodb.Collection;
@@ -37,7 +35,6 @@ import org.habv.tse.mongodb.Collection;
 @ApplicationScoped
 public class ReloadService {
 
-    private static final String MENSAJE_ERROR = "Se está recargando la base de datos actualmente, inténtelo más tarde";
     private final AtomicBoolean reloading;
     private final ExecutorService executorService;
 
@@ -86,12 +83,7 @@ public class ReloadService {
                 reloading.set(false);
             });
         } else {
-            throw new WebApplicationException(
-                    MENSAJE_ERROR,
-                    Response
-                            .status(Response.Status.CONFLICT)
-                            .entity(new Payload(MENSAJE_ERROR))
-                            .build());
+            throw new ReloadException();
         }
     }
 
