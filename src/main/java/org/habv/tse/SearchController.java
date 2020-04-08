@@ -2,19 +2,26 @@ package org.habv.tse;
 
 import org.habv.tse.mongodb.Collection;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.bson.Document;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
@@ -24,12 +31,33 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
  */
 @RequestScoped
 @Path("search")
-@Tag(name = "Servicio de Busqueda", description = "Permite realizar la busqueda en el padrón")
+@Tag(name = "Servicio de Busqueda", description = "Permite realizar busquedas en el padrón")
 public class SearchController {
 
     @Inject
     @Collection("padron")
     private MongoCollection<Document> padron;
+
+    @Operation(description = "Realiza una busqueda aleatorio")
+    @APIResponse(
+            responseCode = "200",
+            description = "Retorna una lista aleatoria",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON))
+    @GET
+    @Path("random")
+    @Produces({MediaType.APPLICATION_JSON})
+    public Response random(
+            @Parameter(description = "Cantidad de valores a retornar")
+            @QueryParam("cantidad") @DefaultValue("5") Integer cantidad) {
+        List<Document> random = new ArrayList<>(cantidad);
+        padron
+                .aggregate(
+                        Arrays.asList(
+                                Aggregates.sample(cantidad),
+                                Aggregates.project(Projections.excludeId())))
+                .into(random);
+        return Response.ok(random).build();
+    }
 
     @Operation(description = "Realiza la busqueda por número de cédula")
     @APIResponse(
@@ -43,7 +71,9 @@ public class SearchController {
     @GET
     @Path("{cedula}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Response search(@PathParam("cedula") String cedula) {
+    public Response search(
+            @Parameter(description = "Número de cédula a buscar", required = true)
+            @PathParam("cedula") String cedula) {
         Document doc = padron
                 .find(Filters.eq("cedula", cedula))
                 .projection(Projections.excludeId())
