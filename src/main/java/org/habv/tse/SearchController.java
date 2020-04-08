@@ -43,17 +43,28 @@ public class SearchController {
             responseCode = "200",
             description = "Retorna una lista aleatoria",
             content = @Content(mediaType = MediaType.APPLICATION_JSON))
+    @APIResponse(
+            responseCode = "400",
+            description = "Alguno de los parámetros enviados es erroneo",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON))
     @GET
     @Path("random")
     @Produces({MediaType.APPLICATION_JSON})
     public Response random(
-            @Parameter(description = "Cantidad de valores a retornar")
-            @QueryParam("cantidad") @DefaultValue("5") Integer cantidad) {
-        List<Document> random = new ArrayList<>(cantidad);
+            @Parameter(description = "Cantidad de valores a retornar, si no se indica la cantidad por defecto es 5, la cantidad mínima es 0 y la máxima 10")
+            @QueryParam("size") @DefaultValue("5") Integer size) {
+        if (size < 0) {
+            return Response
+                    .status(Response.Status.BAD_REQUEST)
+                    .entity(new Payload("La cantidad debe ser mayor a cero y se obtuvo %d", size))
+                    .build();
+        }
+        List<Document> random = new ArrayList<>(size);
         padron
                 .aggregate(
                         Arrays.asList(
-                                Aggregates.sample(cantidad),
+                                Aggregates.sample(size),
+                                Aggregates.limit(10),
                                 Aggregates.project(Projections.excludeId())))
                 .into(random);
         return Response.ok(random).build();
@@ -81,7 +92,7 @@ public class SearchController {
         if (doc == null) {
             return Response
                     .status(Response.Status.NOT_FOUND)
-                    .entity(new Payload("No se encontró la cédula: %s", cedula))
+                    .entity(new Payload("No se encontró la cédula %s", cedula))
                     .build();
         }
         return Response.ok(doc).build();
