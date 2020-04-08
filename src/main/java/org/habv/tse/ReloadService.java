@@ -87,7 +87,10 @@ public class ReloadService {
             });
             return Response.ok(new Payload("OK")).build();
         } else {
-            throw new ReloadException();
+            return Response
+                    .status(Response.Status.CONFLICT)
+                    .entity(new Payload("Se está recargando la base de datos actualmente, inténtelo más tarde"))
+                    .build();
         }
     }
 
@@ -96,7 +99,8 @@ public class ReloadService {
         bitacora
                 .find()
                 .projection(Projections.excludeId())
-                .into(trace);
+                .into(trace)
+                .forEach(this::updateZoneOffset);
         long cantidad = padron.countDocuments();
         Document status = new Document()
                 .append("cargando", reloading.get())
@@ -106,16 +110,27 @@ public class ReloadService {
         return Response.ok(status).build();
     }
 
+    private void updateZoneOffset(Document doc) {
+        /**
+         * MongoDB retorna la fecha como java.util.Date con zona horaria UTC,
+         * por lo que se corrige a zona horaria -06:00 que es la de Costa Rica.
+         */
+        OffsetDateTime fecha = doc.getDate("fecha")
+                .toInstant()
+                .atOffset(ZoneOffset.UTC)
+                .withOffsetSameInstant(ZoneOffset.of("-06:00"));
+        doc.put("fecha", fecha);
+    }
+
     private void trace(String message, Object... params) {
         /**
          * MongoDB siempre guarda la fecha en UTC, por lo que se ajusta la
          * diferencia horaria, adicionalmente el driver solo soporta Instant,
          * LocalDate, LocalDateTime y LocalTime.
          */
-        OffsetDateTime odt = OffsetDateTime.now(ZoneOffset.UTC);
         Document trace = new Document()
                 .append("mensaje", String.format(message, params))
-                .append("fecha", odt.toLocalDateTime());
+                .append("fecha", OffsetDateTime.now(ZoneOffset.UTC).toLocalDateTime());
         bitacora.insertOne(trace);
     }
 
