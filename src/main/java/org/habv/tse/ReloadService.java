@@ -2,6 +2,7 @@ package org.habv.tse;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.Projections;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,8 +13,9 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -24,6 +26,7 @@ import java.util.zip.ZipInputStream;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.ws.rs.core.Response;
 import org.bson.Document;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.habv.tse.mongodb.Collection;
@@ -65,7 +68,7 @@ public class ReloadService {
         this.executorService.shutdown();
     }
 
-    public void reload() {
+    public Response reload() {
         if (reloading.compareAndSet(false, true)) {
             executorService.submit(() -> {
                 try {
@@ -82,20 +85,53 @@ public class ReloadService {
                 }
                 reloading.set(false);
             });
+            return Response.ok(new Payload("OK")).build();
         } else {
-            throw new ReloadException();
+            return Response
+                    .status(Response.Status.CONFLICT)
+                    .entity(new Payload("Se está recargando la base de datos actualmente, inténtelo más tarde"))
+                    .build();
         }
     }
 
+    public Response status() {
+        List<Document> trace = new ArrayList<>();
+        bitacora
+                .find()
+                .projection(Projections.excludeId())
+                .into(trace)
+                .forEach(this::updateZoneOffset);
+        long cantidad = padron.countDocuments();
+        Document status = new Document()
+                .append("cargando", reloading.get())
+                .append("cantidad", cantidad)
+                .append("fecha", OffsetDateTime.now(ZoneId.of("-06:00")))
+                .append("bitacora", trace);
+        return Response.ok(status).build();
+    }
+
+    private void updateZoneOffset(Document doc) {
+        /**
+         * MongoDB retorna la fecha como java.util.Date con zona horaria UTC,
+         * por lo que se corrige a zona horaria -06:00 que es la de Costa Rica.
+         */
+        OffsetDateTime fecha = doc.getDate("fecha")
+                .toInstant()
+                .atOffset(ZoneOffset.UTC)
+                .withOffsetSameInstant(ZoneOffset.of("-06:00"));
+        doc.put("fecha", fecha);
+    }
+
     private void trace(String message, Object... params) {
-        try {
-            Document trace = new Document()
-                    .append("mensaje", String.format(message, params))
-                    .append("fecha", LocalDateTime.now(ZoneId.of("-06:00")));
-            bitacora.insertOne(trace);
-        } catch (Exception ex) {
-            System.err.println("Error: " + ex.getMessage());
-        }
+        /**
+         * MongoDB siempre guarda la fecha en UTC, por lo que se ajusta la
+         * diferencia horaria, adicionalmente el driver solo soporta Instant,
+         * LocalDate, LocalDateTime y LocalTime.
+         */
+        Document trace = new Document()
+                .append("mensaje", String.format(message, params))
+                .append("fecha", OffsetDateTime.now(ZoneOffset.UTC).toLocalDateTime());
+        bitacora.insertOne(trace);
     }
 
     private void download() throws IOException {
@@ -127,8 +163,9 @@ public class ReloadService {
     }
 
     private void bulkLoad() throws IOException {
-        trace("Bulk Load");
+        trace("Drop");
         padron.drop();
+        trace("Bulk Load");
         int bulkSize = 200;
         int count = 0;
         List<Document> bulk = new ArrayList<>(bulkSize);
@@ -154,6 +191,7 @@ public class ReloadService {
             padron.insertMany(bulk);
             bulk.clear();
         }
+        trace("Index");
         padron.createIndex(Indexes.hashed("cedula"));
     }
 
