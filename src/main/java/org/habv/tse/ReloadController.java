@@ -36,8 +36,19 @@ public class ReloadController {
     @GET
     @Produces({MediaType.APPLICATION_JSON})
     public Response reload() {
-        reloadService.reload();
-        return Response.ok(new Payload("OK")).build();
+        return reloadService.reload();
+    }
+
+    @Operation(description = "Verifica el estado de la carga de la base de datos y muestra la bitácora.")
+    @APIResponse(
+            responseCode = "200",
+            description = "Se obtiene exitosamente el estado de la carga y la bitácora",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON))
+    @GET
+    @Path("status")
+    @Produces({MediaType.APPLICATION_JSON})
+    public Response status() {
+        return reloadService.status();
     }
 
 }
