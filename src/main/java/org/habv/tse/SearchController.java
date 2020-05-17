@@ -20,7 +20,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.bson.Document;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -42,18 +44,31 @@ public class SearchController {
     @APIResponse(
             responseCode = "200",
             description = "Retorna una lista aleatoria",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON))
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(
+                            type = SchemaType.ARRAY,
+                            implementation = Persona.class)))
     @APIResponse(
             responseCode = "400",
             description = "Alguno de los parámetros enviados es erroneo",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON))
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(
+                            type = SchemaType.OBJECT,
+                            implementation = Payload.class)))
     @GET
     @Path("random")
     @Produces({MediaType.APPLICATION_JSON})
     public Response random(
-            @Parameter(description = "Cantidad de valores a retornar, si no se indica la cantidad por defecto es 5, la cantidad mínima es 0 y la máxima 10")
+            @Parameter(
+                    description = "Cantidad de valores a retornar, si no se indica la cantidad por defecto es 5, la cantidad mínima es 1 y la máxima 10",
+                    schema = @Schema(
+                            type = SchemaType.INTEGER,
+                            minimum = "1",
+                            maximum = "10"))
             @QueryParam("size") @DefaultValue("5") Integer size) {
-        if (size < 0) {
+        if (size < 1) {
             return Response
                     .status(Response.Status.BAD_REQUEST)
                     .entity(new Payload("La cantidad debe ser mayor a cero y se obtuvo %d", size))
@@ -75,16 +90,29 @@ public class SearchController {
     @APIResponse(
             responseCode = "200",
             description = "Retorna la información de la persona con la cédula indicada",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON))
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(
+                            type = SchemaType.OBJECT,
+                            implementation = Persona.class)))
     @APIResponse(
             responseCode = "404",
             description = "No se encontró una persona con la cédula indicada",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON))
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(
+                            type = SchemaType.OBJECT,
+                            implementation = Payload.class)))
     @GET
     @Path("{cedula}")
     @Produces({MediaType.APPLICATION_JSON})
     public Response search(
-            @Parameter(description = "Número de cédula a buscar", required = true)
+            @Parameter(
+                    description = "Número de cédula a buscar",
+                    required = true,
+                    schema = @Schema(
+                            example = "105480818",
+                            maxLength = 9))
             @PathParam("cedula") String cedula) {
         Document doc = padron
                 .find(Filters.eq("cedula", cedula))
