@@ -105,7 +105,7 @@ public class ReloadService {
         Document status = new Document()
                 .append("cargando", reloading.get())
                 .append("cantidad", cantidad)
-                .append("fecha", OffsetDateTime.now(ZoneId.of("-06:00")))
+                .append("fecha", OffsetDateTime.now(Constantes.ZONE_ID_CR))
                 .append("bitacora", trace);
         return Response.ok(status).build();
     }
@@ -118,7 +118,7 @@ public class ReloadService {
         OffsetDateTime fecha = doc.getDate("fecha")
                 .toInstant()
                 .atOffset(ZoneOffset.UTC)
-                .withOffsetSameInstant(ZoneOffset.of("-06:00"));
+                .withOffsetSameInstant(Constantes.ZONE_OFFSET_CR);
         doc.put("fecha", fecha);
     }
 
@@ -175,10 +175,10 @@ public class ReloadService {
                 count++;
                 String[] parts = line.split("\\s*,\\s*");
                 Document doc = new Document()
-                        .append("cedula", parts[0])
-                        .append("nombre", parts[5])
-                        .append("primerApellido", parts[6])
-                        .append("segundoApellido", parts[7].trim());
+                        .append(Constantes.CEDULA, parts[0])
+                        .append(Constantes.NOMBRE, parts[5])
+                        .append(Constantes.PRIMER_APELLIDO, parts[6])
+                        .append(Constantes.SEGUNDO_APELLIDO, parts[7].trim());
                 bulk.add(doc);
                 if (count == bulkSize) {
                     padron.insertMany(bulk);
@@ -192,7 +192,7 @@ public class ReloadService {
             bulk.clear();
         }
         trace("Index");
-        padron.createIndex(Indexes.hashed("cedula"));
+        padron.createIndex(Indexes.hashed(Constantes.CEDULA));
     }
 
     private void delete() {
