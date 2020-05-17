@@ -59,13 +59,14 @@ public class SearchController {
                     .entity(new Payload("La cantidad debe ser mayor a cero y se obtuvo %d", size))
                     .build();
         }
-        List<Document> random = new ArrayList<>(size);
+        List<Persona> random = new ArrayList<>(size);
         padron
                 .aggregate(
                         Arrays.asList(
                                 Aggregates.sample(size),
                                 Aggregates.limit(10),
                                 Aggregates.project(Projections.excludeId())))
+                .map(Persona::new)
                 .into(random);
         return Response.ok(random).build();
     }
@@ -95,7 +96,7 @@ public class SearchController {
                     .entity(new Payload("No se encontró la cédula %s", cedula))
                     .build();
         }
-        return Response.ok(doc).build();
+        return Response.ok(new Persona(doc)).build();
     }
 
 }

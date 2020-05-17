@@ -3,6 +3,7 @@ package org.habv.tse;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
@@ -33,7 +34,7 @@ public class ReloadController {
             responseCode = "409",
             description = "Se está recargando la base de datos actualmente, inténtelo más tarde",
             content = @Content(mediaType = MediaType.APPLICATION_JSON))
-    @GET
+    @PUT
     @Produces({MediaType.APPLICATION_JSON})
     public Response reload() {
         return reloadService.reload();
