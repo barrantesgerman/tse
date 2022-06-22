@@ -25,7 +25,7 @@
         <!--Thorntail-->
         <thorntail.version>2.6.0.Final</thorntail.version>
         <!--MongoDB-->
-        <mongo.version>3.12.1</mongo.version>
+        <mongo.version>3.12.8</mongo.version>
     </properties>
     
     <dependencies>
